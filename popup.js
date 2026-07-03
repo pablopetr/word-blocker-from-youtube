@@ -1,168 +1,160 @@
-// popup.js
-//
-// Handles the popup UI: loading/saving the blocked-word list and display
-// mode to chrome.storage.sync, showing the live blocked-video count from
-// chrome.storage.local (written by content.js), and import/export of the
-// word list as a plain-text file.
+const STATUS_MESSAGE_DURATION_MS = 4000;
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', initializePopup);
 
-const wordsInput = document.getElementById('wordsInput');
-const saveBtn = document.getElementById('saveBtn');
-const clearBtn = document.getElementById('clearBtn');
-const exportBtn = document.getElementById('exportBtn');
-const importBtn = document.getElementById('importBtn');
-const importFile = document.getElementById('importFile');
-const statusMsg = document.getElementById('statusMsg');
-const blockedCountEl = document.getElementById('blockedCount');
-const modeRadios = document.querySelectorAll('input[name="displayMode"]');
+const blockedWordsTextarea = document.getElementById('wordsInput');
+const saveButton = document.getElementById('saveButton');
+const clearButton = document.getElementById('clearButton');
+const exportButton = document.getElementById('exportButton');
+const importButton = document.getElementById('importButton');
+const importFileInput = document.getElementById('importFileInput');
+const statusMessageElement = document.getElementById('statusMessage');
+const blockedCountElement = document.getElementById('blockedCount');
+const displayModeRadioButtons = document.querySelectorAll('input[name="displayMode"]');
 
-let statusTimer = null;
+let statusMessageTimer = null;
 
-function init() {
+function initializePopup() {
   loadSavedWords();
   loadBlockedCount();
 
-  saveBtn.addEventListener('click', handleSave);
-  clearBtn.addEventListener('click', handleClearAll);
-  exportBtn.addEventListener('click', handleExport);
-  importBtn.addEventListener('click', () => importFile.click());
-  importFile.addEventListener('change', handleImport);
+  saveButton.addEventListener('click', handleSave);
+  clearButton.addEventListener('click', handleClearAll);
+  exportButton.addEventListener('click', handleExport);
+  importButton.addEventListener('click', () => importFileInput.click());
+  importFileInput.addEventListener('change', handleImport);
 
-  // Keep the counter live if the popup is left open while browsing.
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.blockedCount) {
-      blockedCountEl.textContent = changes.blockedCount.newValue || 0;
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes.blockedCount) {
+      blockedCountElement.textContent = changes.blockedCount.newValue || 0;
     }
   });
 }
 
-// ---------------------------------------------------------------------
-// Loading existing settings
-// ---------------------------------------------------------------------
-
 function loadSavedWords() {
-  chrome.storage.sync.get(['blockedWords', 'displayMode'], (data) => {
-    const words = Array.isArray(data.blockedWords) ? data.blockedWords : [];
-    wordsInput.value = words.join('\n');
+  chrome.storage.sync.get(['blockedWords', 'displayMode'], (settings) => {
+    const words = Array.isArray(settings.blockedWords) ? settings.blockedWords : [];
+    blockedWordsTextarea.value = words.join('\n');
 
-    const mode = data.displayMode === 'hide' ? 'hide' : 'blur';
-    modeRadios.forEach((radio) => {
-      radio.checked = radio.value === mode;
+    const displayMode = settings.displayMode === 'hide' ? 'hide' : 'blur';
+    displayModeRadioButtons.forEach((radioButton) => {
+      radioButton.checked = radioButton.value === displayMode;
     });
   });
 }
 
 function loadBlockedCount() {
-  chrome.storage.local.get(['blockedCount'], (data) => {
-    blockedCountEl.textContent = data.blockedCount || 0;
+  chrome.storage.local.get(['blockedCount'], (settings) => {
+    blockedCountElement.textContent = settings.blockedCount || 0;
   });
 }
 
-// ---------------------------------------------------------------------
-// Parsing helpers
-// ---------------------------------------------------------------------
+function removeDuplicates(words) {
+  return words.filter((word, index) => words.indexOf(word) === index);
+}
 
 function parseWordsFromTextarea() {
-  return wordsInput.value
+  const lines = blockedWordsTextarea.value
     .split('\n')
     .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .filter((line, index, all) => all.indexOf(line) === index); // dedupe
+    .filter((line) => line.length > 0);
+
+  return removeDuplicates(lines);
 }
 
-function getSelectedMode() {
-  const checked = document.querySelector('input[name="displayMode"]:checked');
-  return checked ? checked.value : 'blur';
+function getSelectedDisplayMode() {
+  const checkedRadioButton = document.querySelector('input[name="displayMode"]:checked');
+  return checkedRadioButton ? checkedRadioButton.value : 'blur';
 }
 
-// ---------------------------------------------------------------------
-// Button handlers
-// ---------------------------------------------------------------------
+function pluralize(count, singularWord, pluralWord) {
+  return count === 1 ? singularWord : pluralWord;
+}
 
 function handleSave() {
   const words = parseWordsFromTextarea();
-  const displayMode = getSelectedMode();
+  const displayMode = getSelectedDisplayMode();
 
   chrome.storage.sync.set({ blockedWords: words, displayMode }, () => {
     if (chrome.runtime.lastError) {
-      showStatus(`Error saving: ${chrome.runtime.lastError.message}`, true);
+      showStatusMessage(`Error saving: ${chrome.runtime.lastError.message}`, true);
       return;
     }
-    wordsInput.value = words.join('\n');
-    showStatus(
+
+    blockedWordsTextarea.value = words.join('\n');
+
+    const savedMessage =
       words.length > 0
-        ? `Saved! Now blocking ${words.length} word${words.length === 1 ? '' : 's'}.`
-        : 'Saved. No words are currently blocked.'
-    );
+        ? `Saved! Now blocking ${words.length} ${pluralize(words.length, 'word', 'words')}.`
+        : 'Saved. No words are currently blocked.';
+    showStatusMessage(savedMessage);
   });
 }
 
 function handleClearAll() {
-  if (!confirm('Clear your entire blocked-words list?')) return;
+  const userConfirmedClear = confirm('Clear your entire blocked-words list?');
+  if (!userConfirmedClear) return;
 
   chrome.storage.sync.set({ blockedWords: [] }, () => {
     if (chrome.runtime.lastError) {
-      showStatus(`Error clearing: ${chrome.runtime.lastError.message}`, true);
+      showStatusMessage(`Error clearing: ${chrome.runtime.lastError.message}`, true);
       return;
     }
-    wordsInput.value = '';
-    showStatus('Blocked words list cleared.');
+
+    blockedWordsTextarea.value = '';
+    showStatusMessage('Blocked words list cleared.');
   });
 }
 
 function handleExport() {
   const words = parseWordsFromTextarea();
-  const blob = new Blob([words.join('\n')], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
+  const fileBlob = new Blob([words.join('\n')], { type: 'text/plain' });
+  const fileUrl = URL.createObjectURL(fileBlob);
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'blocked-words.txt';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  const downloadLink = document.createElement('a');
+  downloadLink.href = fileUrl;
+  downloadLink.download = 'blocked-words.txt';
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  downloadLink.remove();
+  URL.revokeObjectURL(fileUrl);
 
-  showStatus(`Exported ${words.length} word${words.length === 1 ? '' : 's'}.`);
+  showStatusMessage(`Exported ${words.length} ${pluralize(words.length, 'word', 'words')}.`);
 }
 
 function handleImport(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+  const selectedFile = event.target.files[0];
+  if (!selectedFile) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    const importedWords = String(reader.result)
+  const fileReader = new FileReader();
+
+  fileReader.onload = () => {
+    const importedWords = String(fileReader.result)
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
 
     const existingWords = parseWordsFromTextarea();
-    const merged = [...existingWords, ...importedWords].filter(
-      (word, index, all) => all.indexOf(word) === index
+    const mergedWords = removeDuplicates([...existingWords, ...importedWords]);
+
+    blockedWordsTextarea.value = mergedWords.join('\n');
+    showStatusMessage(
+      `Imported ${importedWords.length} ${pluralize(importedWords.length, 'word', 'words')}. Click "Save Words" to apply.`
     );
-
-    wordsInput.value = merged.join('\n');
-    showStatus(`Imported ${importedWords.length} word(s). Click "Save Words" to apply.`);
   };
-  reader.onerror = () => showStatus('Could not read that file.', true);
-  reader.readAsText(file);
 
-  // Reset so importing the same file again still fires the change event.
-  importFile.value = '';
+  fileReader.onerror = () => showStatusMessage('Could not read that file.', true);
+  fileReader.readAsText(selectedFile);
+
+  importFileInput.value = '';
 }
 
-// ---------------------------------------------------------------------
-// Status message helper
-// ---------------------------------------------------------------------
-
-function showStatus(message, isError = false) {
-  clearTimeout(statusTimer);
-  statusMsg.textContent = message;
-  statusMsg.classList.toggle('error', isError);
-  statusTimer = setTimeout(() => {
-    statusMsg.textContent = '';
-    statusMsg.classList.remove('error');
-  }, 4000);
+function showStatusMessage(message, isError = false) {
+  clearTimeout(statusMessageTimer);
+  statusMessageElement.textContent = message;
+  statusMessageElement.classList.toggle('error', isError);
+  statusMessageTimer = setTimeout(() => {
+    statusMessageElement.textContent = '';
+    statusMessageElement.classList.remove('error');
+  }, STATUS_MESSAGE_DURATION_MS);
 }
