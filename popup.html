@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Word Blocker for YouTube</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1>Word Blocker <span>for YouTube</span></h1>
+  </header>
+
+  <main>
+    <section class="stats">
+      <span id="blockedCount">0</span> video(s) currently blocked on this tab
+    </section>
+
+    <label for="wordsInput">Blocked words / phrases (one per line):</label>
+    <textarea
+      id="wordsInput"
+      rows="8"
+      placeholder="e.g.&#10;clickbait&#10;politics&#10;spoiler"
+    ></textarea>
+
+    <fieldset class="mode">
+      <legend>When a video matches:</legend>
+      <label>
+        <input type="radio" name="displayMode" value="blur" checked />
+        Blur thumbnail + show overlay
+      </label>
+      <label>
+        <input type="radio" name="displayMode" value="hide" />
+        Hide completely
+      </label>
+    </fieldset>
+
+    <div class="button-row">
+      <button id="saveBtn">Save Words</button>
+      <button id="clearBtn" class="secondary">Clear All</button>
+    </div>
+
+    <div class="button-row">
+      <button id="exportBtn" class="link">Export list (.txt)</button>
+      <button id="importBtn" class="link">Import list (.txt)</button>
+      <input type="file" id="importFile" accept=".txt,text/plain" hidden />
+    </div>
+
+    <p id="statusMsg" class="status" role="status" aria-live="polite"></p>
+
+    <details>
+      <summary>How this works</summary>
+      <p>
+        Word Blocker scans the title and (when visible) the description
+        snippet of every video YouTube renders &mdash; on the home page,
+        search results, channel pages, playlists, and the "Up next" sidebar
+        &mdash; and compares them against your list, ignoring capitalization.
+        Matching videos are blurred or hidden automatically, even as you
+        scroll and more videos load in. Changes you save here apply
+        instantly, no page reload needed.
+      </p>
+    </details>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

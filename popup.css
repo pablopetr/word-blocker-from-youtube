@@ -1,0 +1,165 @@
+/* popup.css — minimal, clean styling for the extension popup */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  color: #1a1a1a;
+  background: #fff;
+}
+
+header {
+  background: #cc0000;
+  color: #fff;
+  padding: 12px 16px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+header h1 span {
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+main {
+  padding: 14px 16px 16px;
+}
+
+.stats {
+  background: #f5f5f5;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: #444;
+  margin-bottom: 12px;
+}
+
+.stats #blockedCount {
+  font-weight: 700;
+  color: #cc0000;
+}
+
+label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+  margin-bottom: 10px;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #cc0000;
+}
+
+fieldset.mode {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 8px 10px 10px;
+  margin: 0 0 12px;
+}
+
+fieldset.mode legend {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  padding: 0 4px;
+}
+
+fieldset.mode label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 400;
+  font-size: 12.5px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+button {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #cc0000;
+  color: #fff;
+}
+
+button:hover {
+  background: #a80000;
+}
+
+button.secondary {
+  background: #efefef;
+  color: #333;
+}
+
+button.secondary:hover {
+  background: #e0e0e0;
+}
+
+button.link {
+  background: transparent;
+  color: #065fd4;
+  font-weight: 500;
+  padding: 6px 4px;
+}
+
+button.link:hover {
+  background: #f0f4ff;
+}
+
+.status {
+  min-height: 16px;
+  font-size: 12.5px;
+  color: #0a7f2e;
+  margin: 4px 0 10px;
+}
+
+.status.error {
+  color: #cc0000;
+}
+
+details {
+  font-size: 12px;
+  color: #555;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+}
+
+details p {
+  margin: 8px 0 0;
+  line-height: 1.4;
+}
